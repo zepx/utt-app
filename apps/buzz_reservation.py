@@ -57,7 +57,7 @@ buzz_tokyo_all = [
 ]
 
 
-def parse_js_reservation_data(soup, selected_time):
+def parse_js_reservation_data(soup, selected_date, selected_time):
     """
     Parse JavaScript-based reservation data (for studios like BUZZ新宿コンシェルジュ)
     Returns dict of {room_name: {time: status}}
@@ -78,8 +78,11 @@ def parse_js_reservation_data(soup, selected_time):
         if not schedule_data:
             return None
 
+        # Convert selected_date to string format YYYY-MM-DD
+        date_str = selected_date.strftime('%Y-%m-%d')
+
         # Parse the schedule data
-        # Structure: schedule_data[studio_id][time_index] where 0 = available
+        # Structure: schedule_data[studio_id][date][time] where 0 = available, booking_id = occupied
         reservation_dict = {}
 
         # Get room names from studio_item divs
@@ -92,7 +95,6 @@ def parse_js_reservation_data(soup, selected_time):
             if room_name:
                 room_name = room_name.text.replace(' ', '')
 
-                # Extract studio ID from data attributes or other sources
                 # Create time slots dictionary
                 time_status = {}
 
@@ -105,12 +107,12 @@ def parse_js_reservation_data(soup, selected_time):
 
                 # Get studio ID from the first key in schedule_data
                 studio_id = list(schedule_data.keys())[0]
-                studio_schedule = schedule_data.get(studio_id, {})
+                day_schedule = schedule_data.get(studio_id, {}).get(date_str, {})
 
-                for idx, time in enumerate(time_list):
-                    # Check if time slot is available (0) or occupied (booking ID)
-                    status_value = studio_schedule.get(str(idx), "0")
-                    time_status[time] = "◯" if status_value == "0" else "×"
+                for time in time_list:
+                    # Check if time slot is available (0) or occupied (booking ID string)
+                    status_value = day_schedule.get(time, 0)
+                    time_status[time] = "◯" if status_value == 0 else "×"
 
                 reservation_dict[room_name] = time_status
 
@@ -265,7 +267,7 @@ def main():
                     reservation_table = pd.DataFrame(reservation_state, columns=table_columns).set_index('Time')
                 else:
                     # JavaScript-based parsing (e.g., BUZZ新宿コンシェルジュ)
-                    js_data = parse_js_reservation_data(soup, selected_time)
+                    js_data = parse_js_reservation_data(soup, selected_date, selected_time)
                     if js_data is None:
                         st.warning(f"⚠️ {studio_name}: 予約情報を取得できませんでした")
                         continue
