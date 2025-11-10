@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 import re
 import json
 
@@ -183,7 +184,8 @@ def main():
     # Initialize session state for time tracking
     if 'start_time_value' not in st.session_state:
         # Calculate default start time (now + 1 hour, rounded to nearest 30 min)
-        now = datetime.now()
+        # Always use Asia/Tokyo timezone
+        now = datetime.now(ZoneInfo("Asia/Tokyo"))
         start_dt = now + timedelta(hours=1)
         # Round to nearest 30 minutes
         minutes = 30 * round(start_dt.minute / 30)
