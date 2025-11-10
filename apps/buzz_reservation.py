@@ -7,69 +7,53 @@ import re
 import json
 
 # Area, Studio Name, URL
+# Organized by official BUZZ website area groupings (Tokyo central areas only)
 buzz_tokyo_all = [
-    # 赤坂・六本木エリア
-    ['赤坂・六本木', 'BUZZ赤坂', 'https://buzz-st.com/akasaka2'],
-    ['赤坂・六本木', 'BUZZ六本木', 'https://buzz-st.com/roppongi'],
-    ['赤坂・六本木', 'BUZZ Live 赤坂', 'https://buzz-st.com/live-akasaka'],
-    ['赤坂・六本木', 'バズスタ赤坂', 'https://buzz-st.com/photo-akasaka'],
+    # 渋谷
+    ['渋谷', 'BUZZ渋谷', 'https://buzz-st.com/shibuya'],
+    ['渋谷', 'BUZZ渋谷MARKCITY', 'https://buzz-st.com/shibuya4'],
+    ['渋谷', 'BUZZ渋谷東口SQUARE', 'https://buzz-st.com/shibuya3'],
+    ['渋谷', 'BUZZ渋谷PARK', 'https://buzz-st.com/shibuya2'],
+    ['渋谷', 'BUZZ渋谷宮下PARK', 'https://buzz-st.com/shibuya5'],
+    ['渋谷', 'BUZZ渋谷TOWER', 'https://buzz-st.com/shibuya6'],
 
-    # 浜松町エリア
-    ['浜松町', 'BUZZ BAYSIDE(浜松町)', 'https://buzz-st.com/bayside'],
+    # 六本木・赤坂・浜松町
+    ['六本木・赤坂・浜松町', 'BUZZ赤坂', 'https://buzz-st.com/akasaka2'],
+    ['六本木・赤坂・浜松町', 'BUZZ六本木', 'https://buzz-st.com/roppongi'],
+    ['六本木・赤坂・浜松町', 'BUZZ Live 赤坂', 'https://buzz-st.com/live-akasaka'],
+    ['六本木・赤坂・浜松町', 'BUZZ BAYSIDE(浜松町)', 'https://buzz-st.com/bayside'],
 
-    # 池袋エリア
-    ['池袋', 'BUZZ池袋サンシャイン', 'https://buzz-st.com/ikebukuro7'],
-    ['池袋', 'BUZZ池袋東口BASE', 'https://buzz-st.com/ikebukuro5'],
-    ['池袋', 'BUZZ池袋本店', 'https://buzz-st.com/ikebukuro4'],
-    ['池袋', 'BUZZ池袋西口タワー', 'https://buzz-st.com/ikebukuro3'],
-    ['池袋', 'BUZZ池袋西口PARK', 'https://buzz-st.com/ikebukuro6'],
+    # 新宿・代々木・大久保
+    ['新宿・代々木・大久保', 'BUZZ代々木', 'https://buzz-st.com/yoyogi'],
+    ['新宿・代々木・大久保', 'BUZZ新宿', 'https://buzz-st.com/shinjuku'],
+    ['新宿・代々木・大久保', 'BUZZ新宿ハウス', 'https://buzz-st.com/shinjuku2'],
+    ['新宿・代々木・大久保', 'BUZZ新宿4丁目', 'https://buzz-st.com/shinjuku3'],
+    ['新宿・代々木・大久保', 'BUZZ新宿コンシェルジュ', 'https://buzz-st.com/shinjuku4'],
+    ['新宿・代々木・大久保', 'BUZZ東新宿', 'https://buzz-st.com/shinjuku5'],
+    ['新宿・代々木・大久保', 'BUZZ新宿駅前', 'https://buzz-st.com/shinjuku6'],
+    ['新宿・代々木・大久保', 'BUZZ新宿西口', 'https://buzz-st.com/shinjuku7'],
 
-    # 渋谷・代々木エリア
-    ['渋谷・代々木', 'BUZZ代々木', 'https://buzz-st.com/yoyogi'],
-    ['渋谷・代々木', 'BUZZ渋谷', 'https://buzz-st.com/shibuya'],
-    ['渋谷・代々木', 'BUZZ渋谷MARKCITY', 'https://buzz-st.com/shibuya4'],
-    ['渋谷・代々木', 'BUZZ渋谷東口SQUARE', 'https://buzz-st.com/shibuya3'],
-    ['渋谷・代々木', 'BUZZ渋谷PARK', 'https://buzz-st.com/shibuya2'],
-    ['渋谷・代々木', 'BUZZ渋谷宮下PARK', 'https://buzz-st.com/shibuya5'],
+    # 池袋・高田馬場
+    ['池袋・高田馬場', 'BUZZ池袋サンシャイン', 'https://buzz-st.com/ikebukuro7'],
+    ['池袋・高田馬場', 'BUZZ池袋東口BASE', 'https://buzz-st.com/ikebukuro5'],
+    ['池袋・高田馬場', 'BUZZ池袋本店', 'https://buzz-st.com/ikebukuro4'],
+    ['池袋・高田馬場', 'BUZZ池袋西口タワー', 'https://buzz-st.com/ikebukuro3'],
+    ['池袋・高田馬場', 'BUZZ池袋西口PARK', 'https://buzz-st.com/ikebukuro6'],
+    ['池袋・高田馬場', 'BUZZ南池袋', 'https://buzz-st.com/ikebukuro8'],
+    ['池袋・高田馬場', 'BUZZ高田馬場', 'https://buzz-st.com/takadanobaba'],
+    ['池袋・高田馬場', 'BUZZ高田馬場2丁目', 'https://buzz-st.com/takadanobaba2'],
 
-    # 高田馬場エリア
-    ['高田馬場', 'BUZZ高田馬場', 'https://buzz-st.com/takadanobaba'],
-    ['高田馬場', 'BUZZ高田馬場2丁目', 'https://buzz-st.com/takadanobaba2'],
+    # 秋葉原・神田
+    ['秋葉原・神田', 'BUZZ神田', 'https://buzz-st.com/kanda'],
+    ['秋葉原・神田', 'BUZZ秋葉原', 'https://buzz-st.com/akihabara'],
+    ['秋葉原・神田', 'BUZZ秋葉原駅前', 'https://buzz-st.com/akihabara2'],
 
-    # 新宿エリア
-    ['新宿', 'BUZZ新宿', 'https://buzz-st.com/shinjuku'],
-    ['新宿', 'BUZZ新宿ハウス', 'https://buzz-st.com/shinjuku2'],
-    ['新宿', 'BUZZ新宿4丁目', 'https://buzz-st.com/shinjuku3'],
-    ['新宿', 'BUZZ新宿コンシェルジュ', 'https://buzz-st.com/shinjuku4'],
-    ['新宿', 'BUZZ東新宿', 'https://buzz-st.com/shinjuku5'],
-    ['新宿', 'BUZZ新宿駅前', 'https://buzz-st.com/shinjuku6'],
-    ['新宿', 'BUZZ新宿西口', 'https://buzz-st.com/shinjuku7'],
-
-    # 神田・秋葉原エリア
-    ['神田・秋葉原', 'BUZZ神田', 'https://buzz-st.com/kanda'],
-    ['神田・秋葉原', 'BUZZ秋葉原', 'https://buzz-st.com/akihabara'],
-    ['神田・秋葉原', 'BUZZ秋葉原駅前', 'https://buzz-st.com/akihabara2'],
-    ['神田・秋葉原', 'バズスタライト神田', 'https://buzz-st.com/photo-kanda'],
-
-    # 上野エリア
-    ['上野', 'BUZZ上野', 'https://buzz-st.com/ueno2'],
-    ['上野', 'BUZZ esports 上野', 'https://buzz-st.com/esports-ueno'],
-
-    # 日暮里・巣鴨エリア
-    ['日暮里・巣鴨', 'BUZZ日暮里', 'https://buzz-st.com/nippori'],
-    ['日暮里・巣鴨', 'BUZZ西日暮里', 'https://buzz-st.com/nishinippori'],
-    ['日暮里・巣鴨', 'BUZZ巣鴨', 'https://buzz-st.com/sugamo'],
-
-    # 東京郊外エリア
-    ['東京郊外', 'BUZZ竹ノ塚', 'https://buzz-st.com/takenotsuka'],
-    ['東京郊外', 'BUZZ田無', 'https://buzz-st.com/tanashi'],
-    ['東京郊外', 'BUZZ八王子', 'https://buzz-st.com/hachioji'],
-    ['東京郊外', 'BUZZ国分寺', 'https://buzz-st.com/kokubunji'],
-    ['東京郊外', 'BUZZ西国分寺', 'https://buzz-st.com/nishikokubunji'],
-    ['東京郊外', 'BUZZ羽村', 'https://buzz-st.com/hamura'],
-
-    # その他
-    ['その他', 'BUZZ LABO', 'https://buzz-st.com/labo'],
+    # 上野・日暮里・巣鴨
+    ['上野・日暮里・巣鴨', 'BUZZ上野', 'https://buzz-st.com/ueno2'],
+    ['上野・日暮里・巣鴨', 'BUZZ日暮里', 'https://buzz-st.com/nippori'],
+    ['上野・日暮里・巣鴨', 'BUZZ西日暮里', 'https://buzz-st.com/nishinippori'],
+    ['上野・日暮里・巣鴨', 'BUZZ巣鴨', 'https://buzz-st.com/sugamo'],
+    ['上野・日暮里・巣鴨', 'BUZZ竹ノ塚', 'https://buzz-st.com/takenotsuka'],
 ]
 
 
