@@ -14,7 +14,6 @@ buzz_tokyo_all = [
     ['渋谷', 'BUZZ渋谷', 'https://buzz-st.com/shibuya'],
     ['渋谷', 'BUZZ渋谷MARKCITY', 'https://buzz-st.com/shibuya4'],
     ['渋谷', 'BUZZ渋谷東口SQUARE', 'https://buzz-st.com/shibuya3'],
-    ['渋谷', 'BUZZ渋谷PARK', 'https://buzz-st.com/shibuya2'],
     ['渋谷', 'BUZZ渋谷宮下PARK', 'https://buzz-st.com/shibuya5'],
     ['渋谷', 'BUZZ渋谷TOWER', 'https://buzz-st.com/shibuya6'],
 
@@ -47,7 +46,6 @@ buzz_tokyo_all = [
     # 秋葉原・神田
     ['秋葉原・神田', 'BUZZ神田', 'https://buzz-st.com/kanda'],
     ['秋葉原・神田', 'BUZZ秋葉原', 'https://buzz-st.com/akihabara'],
-    ['秋葉原・神田', 'BUZZ秋葉原駅前', 'https://buzz-st.com/akihabara2'],
 
     # 上野・日暮里・巣鴨
     ['上野・日暮里・巣鴨', 'BUZZ上野', 'https://buzz-st.com/ueno2'],
