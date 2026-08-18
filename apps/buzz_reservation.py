@@ -188,7 +188,7 @@ def main():
         # Round to nearest 30 minutes
         minutes = 30 * round(start_dt.minute / 30)
         if minutes == 60:
-            start_dt = start_dt.replace(hour=start_dt.hour + 1, minute=0, second=0, microsecond=0)
+            start_dt = (start_dt + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
         else:
             start_dt = start_dt.replace(minute=minutes, second=0, microsecond=0)
 
