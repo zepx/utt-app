@@ -56,9 +56,87 @@ buzz_tokyo_all = [
 ]
 
 
+# Time slots of the reservation table (30-minute increments, 06:00-23:30)
+TIME_SLOTS = ['06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30',
+              '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30',
+              '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
+              '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00', '21:30',
+              '22:00', '22:30', '23:00', '23:30']
+
+
+def normalize_room_name(name):
+    """Normalize room names so reservation table columns match studio_item titles
+    (site markup pads studio_title text with whitespace/newlines)."""
+    return ''.join(str(name).split())
+
+
+def _extract_js_variable(source, var_name):
+    """Extract the object/array literal assigned to a JS variable."""
+    match = re.search(r'\b' + re.escape(var_name) + r'\s*=\s*([{\[])', source)
+    if not match:
+        return None
+    open_ch = match.group(1)
+    close_ch = '}' if open_ch == '{' else ']'
+    depth = 0
+    for i in range(match.end() - 1, len(source)):
+        char = source[i]
+        if char == open_ch:
+            depth += 1
+        elif char == close_ch:
+            depth -= 1
+            if depth == 0:
+                return source[match.end() - 1:i + 1]
+    return None
+
+
+def _loads_js_literal(raw):
+    """Parse a JS object literal (unquoted keys, trailing commas) as JSON."""
+    raw = re.sub(r'([{,])\s*([A-Za-z_$][\w$]*|\d+)\s*:', r'\1"\2":', raw)
+    raw = re.sub(r',\s*([}\]])', r'\1', raw)
+    return json.loads(raw)
+
+
+def parse_studio_slots_data(soup, selected_date):
+    """
+    Parse reservation data from StudioSlotsData/StudioArray JS variables
+    (current buzz-st.com format: the reservation table body is generated
+    client-side from these embedded variables).
+    Returns dict of {room_name: {time: status}} or None.
+    """
+    try:
+        source = '\n'.join(script.get_text() for script in soup.find_all('script'))
+
+        slots_raw = _extract_js_variable(source, 'StudioSlotsData')
+        studios_raw = _extract_js_variable(source, 'StudioArray')
+        if not slots_raw or not studios_raw:
+            return None
+
+        slots_data = _loads_js_literal(slots_raw)
+        studios = json.loads(studios_raw)
+        date_str = selected_date.strftime('%Y-%m-%d')
+
+        reservation_dict = {}
+        for studio in studios:
+            room_name = normalize_room_name(studio.get('name', ''))
+            if not room_name:
+                continue
+            # Slot status: 0 = available, 1 = reserved (see reservation-calendar.js).
+            # Slots missing from the data are not bookable.
+            day_info = slots_data.get(str(studio.get('id')), {}).get('info', {}).get(date_str, {})
+            reservation_dict[room_name] = {
+                time: "◯" if day_info.get(time) == 0 else "×"
+                for time in TIME_SLOTS
+            }
+
+        return reservation_dict or None
+
+    except Exception:
+        return None
+
+
 def parse_js_reservation_data(soup, selected_date, selected_time):
     """
-    Parse JavaScript-based reservation data (for studios like BUZZ新宿コンシェルジュ)
+    Parse legacy ScheduleArrayInfoJson reservation data
     Returns dict of {room_name: {time: status}}
     """
     try:
@@ -92,17 +170,13 @@ def parse_js_reservation_data(soup, selected_date, selected_time):
         for room_elem in room_elements:
             room_name = room_elem.find(class_='studio_title')
             if room_name:
-                room_name = room_name.text.replace(' ', '')
+                room_name = normalize_room_name(room_name.text)
 
                 # Create time slots dictionary
                 time_status = {}
 
                 # Time list starts at 06:00 with 30-min intervals
-                time_list = ['06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30',
-                             '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30',
-                             '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
-                             '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00', '21:30',
-                             '22:00', '22:30', '23:00', '23:30']
+                time_list = TIME_SLOTS
 
                 # Get studio ID from the first key in schedule_data
                 studio_id = list(schedule_data.keys())[0]
@@ -259,15 +333,22 @@ def main():
                 info_text = info_catch.text if info_catch else ""
                 st.markdown(f"[{studio_name}]({table_url}): {info_text}")
 
-                # Check if standard table exists, otherwise try JavaScript-based parsing
-                if table is not None:
+                # buzz-st.com page formats:
+                # 1. Server-rendered HTML table with actual rows (legacy)
+                # 2. StudioSlotsData/StudioArray JS variables (current format:
+                #    the table body is generated client-side, so the HTML
+                #    table shell exists but is empty)
+                # 3. ScheduleArrayInfoJson JS variable (legacy)
+                if table is not None and table.find('td'):
                     # Standard table-based parsing
-                    table_columns = ['Time'] + [div.text for div in table.find_all('div', class_="studio_reserve_time_table_studio_name")]
+                    table_columns = ['Time'] + [normalize_room_name(div.text) for div in table.find_all('div', class_="studio_reserve_time_table_studio_name")]
                     reservation_state = get_reservation_state(table)
                     reservation_table = pd.DataFrame(reservation_state, columns=table_columns).set_index('Time')
                 else:
-                    # JavaScript-based parsing (e.g., BUZZ新宿コンシェルジュ)
-                    js_data = parse_js_reservation_data(soup, selected_date, selected_time)
+                    # JavaScript-based parsing
+                    js_data = parse_studio_slots_data(soup, selected_date)
+                    if js_data is None:
+                        js_data = parse_js_reservation_data(soup, selected_date, selected_time)
                     if js_data is None:
                         st.warning(f"⚠️ {studio_name}: 予約情報を取得できませんでした")
                         continue
@@ -281,7 +362,7 @@ def main():
                 room_names = []
                 all_specs = []
                 for room in soup.find_all(class_='studio_item'):
-                    room_name = room.find(class_='studio_title').text.replace(' ', '')
+                    room_name = normalize_room_name(room.find(class_='studio_title').text)
                     spec = room.find(class_='studio_spec').find('span').text.split()[1]
                     room_names.append(room_name)
                     all_specs.append(spec)
@@ -309,7 +390,7 @@ def main():
 
             except Exception as e:
                 # Skip studios that have errors (e.g., different page structure)
-                st.warning(f"⚠️ {studio_name}: 予約情報を取得できませんでした")
+                st.warning(f"⚠️ {studio_name}: 予約情報を取得できませんでした ({type(e).__name__}: {e})")
                 continue
 
 if __name__ == "__main__":

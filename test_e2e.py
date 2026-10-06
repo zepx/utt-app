@@ -10,7 +10,9 @@ from apps.buzz_reservation import (
     buzz_tokyo_all,
     filter_rooms_by_area,
     get_reservation_state,
+    normalize_room_name,
     parse_js_reservation_data,
+    parse_studio_slots_data,
 )
 
 TODAY = datetime.date.today()
@@ -24,16 +26,17 @@ def scrape_studio(studio_url, date=TODAY):
     response.raise_for_status()
     soup = BeautifulSoup(response.text, "html.parser")
 
-    # 予約表 — HTML table first, then the JS / ScheduleArrayInfoJson fallback
+    # 予約表 — server-rendered HTML table (legacy) first, then the embedded
+    # JS data (StudioSlotsData = current format, ScheduleArrayInfoJson = legacy)
     table = soup.find('table', class_="studio_all_reserve_time_table")
-    if table is not None:
-        columns = ['Time'] + [d.text for d in table.find_all(
+    if table is not None and table.find('td'):
+        columns = ['Time'] + [normalize_room_name(d.text) for d in table.find_all(
             'div', class_="studio_reserve_time_table_studio_name")]
         df = pd.DataFrame(get_reservation_state(table),
                           columns=columns).set_index('Time')
     else:
-        js_data = parse_js_reservation_data(soup, date, SELECTED_TIME)
-        assert js_data, 'no HTML table and no ScheduleArrayInfoJson data'
+        js_data = parse_studio_slots_data(soup, date) or parse_js_reservation_data(soup, date, SELECTED_TIME)
+        assert js_data, 'no HTML table and no StudioSlotsData/ScheduleArrayInfoJson data'
         df = pd.DataFrame(js_data)
         df.index.name = 'Time'
 
@@ -45,7 +48,7 @@ def scrape_studio(studio_url, date=TODAY):
     # 部屋のスペック + 広さフィルター
     room_names, specs = [], []
     for room in soup.find_all(class_='studio_item'):
-        room_names.append(room.find(class_='studio_title').text.replace(' ', ''))
+        room_names.append(normalize_room_name(room.find(class_='studio_title').text))
         specs.append(room.find(class_='studio_spec').find('span').text.split()[1])
     assert room_names, 'no room specs found'
     spec_table = pd.DataFrame(specs, index=room_names, columns=['広さ']).T
