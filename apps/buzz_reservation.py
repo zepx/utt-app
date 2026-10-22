@@ -90,7 +90,14 @@ def _extract_js_variable(source, var_name):
 
 
 def _loads_js_literal(raw):
-    """Parse a JS object literal (unquoted keys, trailing commas) as JSON."""
+    """Parse a JS object literal (unquoted keys, trailing commas, comments) as JSON."""
+    # Strip // line comments and /* */ block comments outside string literals
+    raw = re.sub(
+        r'("(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\')|//[^\n]*|/\*.*?\*/',
+        lambda m: m.group(1) or '',
+        raw,
+        flags=re.S,
+    )
     raw = re.sub(r'([{,])\s*([A-Za-z_$][\w$]*|\d+)\s*:', r'\1"\2":', raw)
     raw = re.sub(r',\s*([}\]])', r'\1', raw)
     return json.loads(raw)
